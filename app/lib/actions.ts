@@ -3,6 +3,8 @@ import { z } from 'zod'
 import postgres from 'postgres'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { AuthError } from 'next-auth'
+import { signIn } from '../auth'
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' })
 
@@ -95,4 +97,20 @@ export async function deleteInvoice(id: string) {
                 console.error(error)
         }
         revalidatePath('/dashboard/invoices')
+}
+
+export async function authenticate(prevState: string | undefined, formData: FormData) {
+        try {
+                await signIn('credentials', formData)
+        } catch (error) {
+                if (error instanceof AuthError) {
+                        switch (error.message) {
+                                case 'CredentialsSignin':
+                                        return 'Invalid credentials.'
+                                default:
+                                        return 'Something went wrong.'
+                        }
+                }
+                throw error
+        }
 }
